@@ -57,7 +57,7 @@ export default function RestoreSessionPage() {
                         diffs: data.diffs || [],
                         stats: data.stats
                     },
-                    mergeActions: data.mergeActions || [],
+
                     aiSummary: data.aiSummary,
                     isComparing: false
                 });

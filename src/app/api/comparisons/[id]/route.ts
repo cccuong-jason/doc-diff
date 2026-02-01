@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import dbConnect from '@/lib/db';
 import Comparison from '@/models/Comparison';
 
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest, props: Props) {
         // Try finding by shortId first (common case), then _id
         let comparison = await Comparison.findOne({ shortId: params.id });
 
-        if (!comparison && mongoose.Types.ObjectId.isValid(params.id)) {
+        if (!comparison && /^[0-9a-fA-F]{24}$/.test(params.id)) {
             comparison = await Comparison.findById(params.id);
         }
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest, props: Props) {
             modifiedContent: comparison.modifiedContent,
             diffs: comparison.diffs,
             stats: comparison.stats,
-            mergeActions: comparison.mergeActions,
+
             aiSummary: comparison.aiSummary,
             createdAt: comparison.createdAt
         });
@@ -50,30 +51,16 @@ export async function PATCH(req: NextRequest, props: Props) {
 
     try {
         const body = await req.json();
-        const { action, diffId, aiSummary } = body;
+        const { aiSummary } = body;
 
         let query = { shortId: params.id };
         // If not found by shortId, try _id
-        if (!await Comparison.exists(query) && mongoose.Types.ObjectId.isValid(params.id)) {
+        if (!await Comparison.exists(query) && /^[0-9a-fA-F]{24}$/.test(params.id)) {
             // @ts-ignore
             query = { _id: params.id };
         }
 
-        if (action && diffId) {
-            // Update merge action
-            await Comparison.updateOne(
-                query,
-                {
-                    $push: {
-                        mergeActions: {
-                            diffId,
-                            action,
-                            timestamp: new Date()
-                        }
-                    }
-                }
-            );
-        }
+
 
         if (aiSummary) {
             // Update AI Summary
@@ -97,7 +84,7 @@ export async function DELETE(req: NextRequest, props: Props) {
     try {
         const result = await Comparison.deleteOne({ shortId: params.id });
 
-        if (result.deletedCount === 0 && mongoose.Types.ObjectId.isValid(params.id)) {
+        if (result.deletedCount === 0 && /^[0-9a-fA-F]{24}$/.test(params.id)) {
             await Comparison.deleteOne({ _id: params.id });
         }
 
@@ -108,4 +95,4 @@ export async function DELETE(req: NextRequest, props: Props) {
     }
 }
 
-import mongoose from 'mongoose';
+

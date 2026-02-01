@@ -9,7 +9,7 @@ export async function generateChangeSummary(
     changes: DiffResult[],
     originalDocName: string,
     modifiedDocName: string,
-    language: 'en' | 'vi' = 'en'
+    language: 'en' | 'vi' = 'vi'
 ): Promise<AISummary> {
 
     if (!API_KEY) {
@@ -31,22 +31,28 @@ export async function generateChangeSummary(
 
         // Build context from changes
         const changesContext = buildChangesContext(changes);
-        const prompt = language === 'vi'
-            ? buildVietnamesePrompt(changesContext, originalDocName, modifiedDocName)
-            : buildEnglishPrompt(changesContext, originalDocName, modifiedDocName);
+
+        // Force Vietnamese prompt if language is 'vi' or undefined (default)
+        const prompt = language === 'en'
+            ? buildEnglishPrompt(changesContext, originalDocName, modifiedDocName)
+            : buildVietnamesePrompt(changesContext, originalDocName, modifiedDocName);
 
         // Try primary model: gemini-1.5-flash
         // (Note: User mentioned "2.5 flash", likely referring to 2.0 Flash Experimental or future version.
         // We stick to 1.5-flash as stable, but fallback to gemini-pro if needed).
         let text = '';
         try {
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
             const result = await model.generateContent(prompt);
             const response = await result.response;
             text = response.text();
         } catch (error: any) {
-            console.warn(`[Gemini] gemini-2.0-flash failed, trying gemini-pro...`);
-            throw error;
+            console.warn(`[Gemini] gemini-1.5-flash failed, trying gemini-pro...`);
+            // Fallback
+            const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            text = response.text();
         }
 
         // Parse the AI response
@@ -163,16 +169,16 @@ Respond ONLY with the JSON object.`;
 }
 
 function buildVietnamesePrompt(changesContext: string, originalDoc: string, modifiedDoc: string): string {
-    return `Bạn là chuyên gia so sánh tài liệu. Phân tích các thay đổi sau đây giữa hai tài liệu và cung cấp bản tóm tắt có cấu trúc.
+    return `Bạn là chuyên gia so sánh tài liệu. Phân tích các thay đổi sau đây giữa hai tài liệu và cung cấp bản tóm tắt có cấu trúc bằng TIẾNG VIỆT.
 
 So sánh tài liệu: "${originalDoc}" → "${modifiedDoc}"
 
 ${changesContext}
 
-Vui lòng cung cấp phản hồi theo định dạng JSON sau:
+Vui lòng cung cấp phản hồi theo định dạng JSON sau (Nội dung phải là Tiếng Việt):
 {
-  "summary": "Tóm tắt ngắn gọn 2-3 câu về những gì đã thay đổi tổng thể",
-  "keyChanges": ["Thay đổi chính 1", "Thay đổi chính 2", "Thay đổi chính 3"],
+  "summary": "Tóm tắt ngắn gọn 2-3 câu về những gì đã thay đổi tổng thể (Tiếng Việt)",
+  "keyChanges": ["Thay đổi chính 1 (Tiếng Việt)", "Thay đổi chính 2", "Thay đổi chính 3"],
   "impactLevel": "minor|moderate|major"
 }
 

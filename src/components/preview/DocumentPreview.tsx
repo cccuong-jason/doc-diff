@@ -97,8 +97,6 @@ interface SideBySidePreviewProps {
     isSyncScroll?: boolean;
     currentChangeIndex?: number;
     onChangesFound?: (count: number) => void;
-    mergeActions?: Record<string, 'accept' | 'reject'>;
-    onMergeAction?: (diffId: string, action: 'accept' | 'reject') => void;
 }
 
 export function SideBySidePreview({
@@ -109,9 +107,7 @@ export function SideBySidePreview({
     zoomLevel = 100,
     isSyncScroll = true,
     currentChangeIndex = -1,
-    onChangesFound,
-    mergeActions = {},
-    onMergeAction
+    onChangesFound
 }: SideBySidePreviewProps) {
     const originalRef = useRef<HTMLDivElement>(null);
     const modifiedRef = useRef<HTMLDivElement>(null);
@@ -300,41 +296,6 @@ export function SideBySidePreview({
                     zoomLevel={zoomLevel}
                     showHeader={false}
                 />
-
-                {/* Hover Action Popover determined by state */}
-                {hoveredDiffId && hoverPosition && onMergeAction && (
-                    <div
-                        className="absolute z-50 flex items-center gap-1 p-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border animate-in fade-in zoom-in-95 duration-200"
-                        style={{ top: hoverPosition.top, left: hoverPosition.left, transform: 'translateX(-50%)' }}
-                        onMouseEnter={() => {/* Keep open */ }}
-                        onMouseLeave={() => setHoveredDiffId(null)}
-                    >
-                        {/* Status Indicator if already merged */}
-                        {mergeActions[hoveredDiffId] ? (
-                            <span className={cn(
-                                "text-xs font-medium px-2 py-1 rounded",
-                                mergeActions[hoveredDiffId] === 'accept' ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"
-                            )}>
-                                {mergeActions[hoveredDiffId] === 'accept' ? 'Accepted' : 'Rejected'}
-                            </span>
-                        ) : null}
-
-                        <button
-                            className="p-1 hover:bg-green-100 text-green-600 rounded"
-                            onClick={() => onMergeAction(hoveredDiffId, 'accept')}
-                            title="Accept Change"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                        </button>
-                        <button
-                            className="p-1 hover:bg-red-100 text-red-600 rounded"
-                            onClick={() => onMergeAction(hoveredDiffId, 'reject')}
-                            title="Reject Change"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );

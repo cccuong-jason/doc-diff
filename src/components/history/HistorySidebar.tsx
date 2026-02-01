@@ -107,7 +107,7 @@ export function HistorySidebar() {
                     diffs: fullComparison.diffs || [],
                     stats: fullComparison.stats,
                 },
-                mergeActions: fullComparison.mergeActions || [],
+
                 aiSummary: fullComparison.aiSummary,
                 isComparing: false,
             });

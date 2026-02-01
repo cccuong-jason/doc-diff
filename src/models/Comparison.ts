@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { MergeAction } from '@/types/document';
+
 
 // We'll store the full comparison result, but optimizing what we fetch
 // The interface extends Document from mongoose, but we want to align with our types
@@ -16,7 +16,7 @@ export interface IComparison extends Document {
         deletions: number;
         modifications: number;
     };
-    mergeActions: MergeAction[];
+
     aiSummary: {
         summary: string;
         keyChanges: string[];
@@ -42,11 +42,7 @@ const ComparisonSchema: Schema = new Schema({
         deletions: { type: Number, default: 0 },
         modifications: { type: Number, default: 0 }
     },
-    mergeActions: [{
-        diffId: String,
-        action: { type: String, enum: ['accept', 'reject', 'pending'] },
-        timestamp: Date
-    }],
+
     aiSummary: {
         summary: String,
         keyChanges: [String],

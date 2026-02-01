@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { getAcceptString, detectFormat } from '@/lib/parsers';
 import { cn } from '@/lib/utils';
+import { useComparisonStore } from '@/stores/comparison-store';
+import { translations } from '@/lib/i18n';
 
 interface FileUploaderProps {
     label: string;
@@ -26,6 +28,8 @@ export function FileUploader({
     className,
 }: FileUploaderProps) {
     const [isDragging, setIsDragging] = useState(false);
+    const { language } = useComparisonStore();
+    const t = translations[language];
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -104,8 +108,8 @@ export function FileUploader({
                         </div>
                     </div>
                     <div className="text-center">
-                        <p className="font-medium">Processing document...</p>
-                        <p className="text-sm text-muted-foreground mt-1">Extracting content</p>
+                        <p className="font-medium">{t.processing}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{t.extracting}</p>
                     </div>
                     <Progress value={65} className="w-48 h-2" />
                 </div>
@@ -133,7 +137,7 @@ export function FileUploader({
                             e.stopPropagation();
                         }}
                     >
-                        Replace File
+                        {t.replaceFile}
                     </Button>
                 </div>
             ) : (
@@ -142,9 +146,9 @@ export function FileUploader({
                         <Upload className="w-10 h-10 text-primary/50 group-hover:text-primary transition-colors" />
                     </div>
                     <div className="text-center">
-                        <p className="font-semibold text-lg">Drop file here</p>
+                        <p className="font-semibold text-lg">{t.dropHere}</p>
                         <p className="text-sm text-muted-foreground mt-1">
-                            or click to browse
+                            {t.clickToBrowse}
                         </p>
                     </div>
                     <div className="flex items-center gap-2 mt-2">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { GitCompare, Zap, ArrowRight } from 'lucide-react';
+import { GitCompare, Loader2, ArrowRight } from 'lucide-react';
 
 interface AnimatedCompareButtonProps {
     onClick: () => void;
@@ -41,7 +41,7 @@ export function AnimatedCompareButton({
                 {/* Inner Content Layer */}
                 <div className="relative z-10 flex items-center justify-center">
                     {isComparing ? (
-                        <Zap className="w-10 h-10 animate-bounce text-yellow-300 drop-shadow-md" />
+                        <Loader2 className="w-10 h-10 animate-spin text-white drop-shadow-md" />
                     ) : (
                         <div className="relative">
                             <GitCompare className={cn("w-10 h-10 transition-transform duration-500", canCompare && "group-hover:rotate-180")} />
