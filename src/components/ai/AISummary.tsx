@@ -69,7 +69,7 @@ export function AISummaryPanel({
 
             {/* Compact Header */}
             {compact && (
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 p-8">
                     <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5" />
                         {t.aiSummary}

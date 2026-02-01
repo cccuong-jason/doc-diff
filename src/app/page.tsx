@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { ArrowRight, GitCompare, ArrowLeftRight, ChevronUp, ChevronDown, Menu, RefreshCw, X, FolderInput, Zap, Loader2 } from 'lucide-react';
+import { ArrowRight, GitCompare, ArrowLeftRight, ChevronUp, ChevronDown, Menu, RefreshCw, X, FolderInput, Loader2, Zap, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +18,6 @@ import { generateChangeSummary } from '@/app/actions/ai';
 import { translations } from '@/lib/i18n';
 import htmldiff from 'htmldiff-js';
 import { parseDiffChanges, DiffChange } from '@/lib/diff-parser';
-import { generateMergedHtml } from '@/lib/merge/merge-engine';
 import { cn, generateShortId } from '@/lib/utils';
 import { ShareDialog } from '@/components/share/ShareDialog';
 import { toast } from 'sonner';
@@ -43,8 +41,6 @@ export default function HomePage() {
     setIsComparing,
     setAISummary,
     setIsGeneratingSummary,
-    mergeActions,
-    addMergeAction,
     // updateHistoryItem removed
     history,
     reset,
@@ -62,6 +58,12 @@ export default function HomePage() {
   // Local state
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [modifiedFile, setModifiedFile] = useState<File | null>(null);
+
+  // Sync local file state with store (e.g. on reset)
+  useEffect(() => {
+    if (!originalDoc) setOriginalFile(null);
+    if (!modifiedDoc) setModifiedFile(null);
+  }, [originalDoc, modifiedDoc]);
   const [originalLoading, setOriginalLoading] = useState(false);
   const [modifiedLoading, setModifiedLoading] = useState(false);
   const [activeView, setActiveView] = useState<'diff' | 'preview'>('preview');
@@ -150,7 +152,6 @@ export default function HomePage() {
                   diffs: data.diffs || [],
                   stats: data.stats
                 },
-                mergeActions: data.mergeActions || [],
                 aiSummary: data.aiSummary,
                 isComparing: false
               });
@@ -161,13 +162,7 @@ export default function HomePage() {
     }
   }, []);
 
-  // Create map for DiffViewer
-  const mergeActionMap = useMemo(() => {
-    return mergeActions.reduce((acc, item) => {
-      acc[item.diffId] = item.action as 'accept' | 'reject';
-      return acc;
-    }, {} as Record<string, 'accept' | 'reject'>);
-  }, [mergeActions]);
+
 
   // Compute stats
   const totalStats = useMemo(() => {
@@ -176,6 +171,7 @@ export default function HomePage() {
   }, [comparisonResult]);
 
   const canCompare = originalDoc && modifiedDoc;
+  const showResults = !!comparisonResult;
 
   // Compute HTML diff when results are ready
   useEffect(() => {
@@ -294,7 +290,10 @@ export default function HomePage() {
       // 1. Run local comparison logic
       const result = await compareDocuments(docOriginal, docModified);
 
-      // 2. Persist to API
+      // 2. Persist to API with Timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
       const saveResponse = await fetch('/api/comparisons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -307,8 +306,11 @@ export default function HomePage() {
           diffs: result.diffs,
           stats: result.stats,
           aiSummary: null // No AI summary yet
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!saveResponse.ok) throw new Error('Failed to save to database');
       const savedData = await saveResponse.json();
@@ -320,9 +322,13 @@ export default function HomePage() {
       // 3. Update URL
       window.history.pushState({}, '', `/s/${savedData.id}`);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("Comparison Error", err);
-      toast.error("Comparison failed or storage limit reached.");
+      if (err.name === 'AbortError') {
+        toast.error("Comparison request timed out (60s). Please try again.");
+      } else {
+        toast.error("Comparison failed or storage limit reached.");
+      }
     } finally {
       setIsComparing(false);
     }
@@ -392,57 +398,7 @@ export default function HomePage() {
     }
   }, [comparisonResult, language, setAISummary, setIsGeneratingSummary, t]);
 
-  const handleMergeAction = useCallback((diffId: string, action: 'accept' | 'reject') => {
-    addMergeAction({
-      diffId,
-      action,
-      timestamp: new Date()
-    });
 
-    // Sync merge action to DB (Fire and forget or debounced in real app)
-    if (comparisonResult?.id) {
-      fetch(`/api/comparisons/${comparisonResult.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, diffId })
-      }).catch(e => console.error("Failed to sync merge action", e));
-    }
-
-  }, [addMergeAction, comparisonResult?.id]);
-
-  const showResults = !!comparisonResult;
-
-  // New Export Function
-  const handleExport = async () => {
-    if (!comparisonResult || !originalDoc?.htmlContent || !modifiedDoc?.htmlContent) return;
-
-    if (changes.length === 0 && !htmlDiffContent) {
-      toast.error("No content to export");
-      return;
-    }
-
-    try {
-      const mergedHtml = generateMergedHtml(
-        originalDoc,
-        comparisonResult.diffs,
-        mergeActions
-      );
-
-      const blob = new Blob([mergedHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `merged_${comparisonResult.id}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("Exported successfully");
-    } catch (error) {
-      console.error("Export failed", error);
-      toast.error("Failed to export merged document");
-    }
-  };
 
   const handleLogoClick = useCallback(() => {
     // Full reset
@@ -465,22 +421,6 @@ export default function HomePage() {
 
   return (
     <main className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
-      {/* Header */}
-      <header className="h-14 border-b flex items-center justify-between px-4 lg:px-6 shrink-0 bg-card z-30">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={handleLogoClick}>
-          <div className="bg-primary/10 p-2 rounded-lg">
-            <GitCompare className="w-5 h-5 text-primary" />
-          </div>
-          <h1 className="font-bold text-lg tracking-tight">
-            Doc<span className="text-primary">Diff</span>
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Theme Toggle can go here if needed, header component might have it */}
-        </div>
-      </header>
-
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden relative">
 
@@ -494,21 +434,15 @@ export default function HomePage() {
 
         {/* Upload View */}
         {!showResults && (
-          <div className="h-full overflow-auto p-4 md:p-8 animate-in fade-in zoom-in-95 duration-300 relative z-10 w-full">
-            <div className="max-w-[1920px] mx-auto h-full flex flex-col justify-center">
+          <div className="h-full overflow-hidden p-4 md:p-6 animate-in fade-in zoom-in-95 duration-300 relative z-10 w-full flex flex-col">
+            <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col">
 
-              {/* Header Removed as requested - "Keep the original one only" */}
-              <div className="text-center mb-12 space-y-4">
-                {/* <h2 className="text-3xl ...">Comparison Tool</h2> */}
-                {/* <p className="text-muted-foreground ...">...</p> */}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center w-full">
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 md:gap-8 items-stretch w-full h-full">
                 {/* Original Uploader */}
-                <div className="flex flex-col h-[300px] bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 relative overflow-hidden group hover:border-blue-500/50 transition-colors">
+                <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 relative overflow-hidden group hover:border-blue-500/50 transition-colors">
                   <div className="absolute inset-0 flex flex-col">
-                    <div className="p-4 bg-white/50 dark:bg-black/20 text-center border-b border-dashed border-slate-200 dark:border-slate-800">
-                      <h3 className="font-semibold text-lg text-slate-700 dark:text-slate-200">Original Document</h3>
+                    <div className="p-4 bg-white/50 dark:bg-black/20 text-center border-b border-dashed border-slate-200 dark:border-slate-800 shrink-0">
+                      <h3 className="font-semibold text-lg text-slate-700 dark:text-slate-200">{t.uploadOriginal}</h3>
                     </div>
                     <div className="flex-1 relative">
                       <FileUploader
@@ -523,7 +457,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Compare Action */}
-                <div className="flex justify-center py-4 md:py-0 relative z-20">
+                <div className="flex items-center justify-center py-4 md:py-0 relative z-20">
                   <AnimatedCompareButton
                     onClick={handleCompare}
                     disabled={!canCompare}
@@ -533,10 +467,10 @@ export default function HomePage() {
                 </div>
 
                 {/* Modified Uploader */}
-                <div className="flex flex-col h-[300px] bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 relative overflow-hidden group hover:border-purple-500/50 transition-colors">
+                <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 relative overflow-hidden group hover:border-purple-500/50 transition-colors">
                   <div className="absolute inset-0 flex flex-col">
-                    <div className="p-4 bg-white/50 dark:bg-black/20 text-center border-b border-dashed border-slate-200 dark:border-slate-800">
-                      <h3 className="font-semibold text-lg text-slate-700 dark:text-slate-200">Modified Document</h3>
+                    <div className="p-4 bg-white/50 dark:bg-black/20 text-center border-b border-dashed border-slate-200 dark:border-slate-800 shrink-0">
+                      <h3 className="font-semibold text-lg text-slate-700 dark:text-slate-200">{t.uploadModified}</h3>
                     </div>
                     <div className="flex-1 relative">
                       <FileUploader
@@ -550,31 +484,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-
-              {/* Features Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-4xl mx-auto">
-                <Card className="p-4 bg-card/50 backdrop-blur border-none shadow-sm flex flex-col items-center text-center gap-2 hover:bg-card/80 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 mb-2">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-semibold">Instant Analysis</h3>
-                  <p className="text-sm text-muted-foreground">Detects additions, deletions, and formatting changes in seconds.</p>
-                </Card>
-                <Card className="p-4 bg-card/50 backdrop-blur border-none shadow-sm flex flex-col items-center text-center gap-2 hover:bg-card/80 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 mb-2">
-                    <Loader2 className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-semibold">AI Summaries</h3>
-                  <p className="text-sm text-muted-foreground">Get intelligent summaries of what changed and why it matters.</p>
-                </Card>
-                <Card className="p-4 bg-card/50 backdrop-blur border-none shadow-sm flex flex-col items-center text-center gap-2 hover:bg-card/80 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 mb-2">
-                    <FolderInput className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-semibold">Smart Merge</h3>
-                  <p className="text-sm text-muted-foreground">Selectively accept or reject changes and export the final result.</p>
-                </Card>
-              </div>
             </div>
           </div>
         )}
@@ -586,13 +495,14 @@ export default function HomePage() {
             <div className="h-14 border-b bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 z-20 shadow-sm gap-4">
 
               {/* Left: Back */}
+              {/* Left: Back */}
               <Button variant="ghost" size="sm" onClick={() => {
                 setComparisonResult(null);
                 setAISummary(null);
                 window.history.pushState({}, '', '/');
               }} className="text-muted-foreground hover:text-foreground shrink-0">
                 <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                Back
+                {t.back}
               </Button>
 
               {/* Center: File Swap & Names */}
@@ -609,7 +519,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Swap Button */}
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0" onClick={handleSwap} title="Swap">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0" onClick={handleSwap} title={t.swap}>
                   <ArrowLeftRight className="w-4 h-4 text-muted-foreground" />
                 </Button>
 
@@ -635,24 +545,15 @@ export default function HomePage() {
                       variant="ghost"
                       size="sm"
                       className="gap-2 hidden md:flex text-muted-foreground hover:text-foreground"
-                      title="Copy Link"
+                      title={t.share}
                     >
                       <FolderInput className="w-4 h-4 rotate-90" />
-                      Share
+                      {t.share}
                     </Button>
                   }
                 />
 
-                {/* Export Button */}
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleExport}
-                  className="bg-blue-600 hover:bg-blue-700 text-white gap-2 mr-2 hidden md:flex"
-                >
-                  <FolderInput className="w-4 h-4" />
-                  Export
-                </Button>
+
                 {/* Navigation Controls in Toolbar */}
                 {totalDetectedChanges > 0 && (
                   <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 border mr-2">
@@ -725,7 +626,7 @@ export default function HomePage() {
                       onClick={() => setActiveView('preview')}
                       className="h-7 text-xs"
                     >
-                      Visual Preview
+                      {t.visualPreview}
                     </Button>
                     <Button
                       variant={activeView === 'diff' ? 'secondary' : 'ghost'}
@@ -733,7 +634,7 @@ export default function HomePage() {
                       onClick={() => setActiveView('diff')}
                       className="h-7 text-xs"
                     >
-                      Raw Diff
+                      {t.rawDiff}
                     </Button>
                   </div>
 
@@ -747,7 +648,7 @@ export default function HomePage() {
                     title="Sync Scroll"
                   >
                     <ArrowLeftRight className="w-3 h-3" />
-                    Sync Scroll
+                    {t.syncScroll}
                   </Button>
 
                   {/* Spacer */}
@@ -762,7 +663,7 @@ export default function HomePage() {
                       onClick={handleGenerateAI}
                     >
                       <Zap className="w-3 h-3" />
-                      Analyze with AI
+                      {t.analyzeWithAI}
                     </Button>
                   )}
                 </div>
@@ -775,8 +676,6 @@ export default function HomePage() {
                         diffs={comparisonResult.diffs}
                         viewMode={viewMode}
                         onDiffClick={handleDiffClick}
-                        mergeActions={mergeActionMap} // Pass map
-                        onMergeAction={handleMergeAction}
                       />
                     </div>
                   ) : (
@@ -788,8 +687,6 @@ export default function HomePage() {
                           modifiedDiffHtml={htmlDiffContent || undefined}
                           currentChangeIndex={currentChangeIndex}
                           isSyncScroll={isSyncScroll}
-                          mergeActions={mergeActionMap}
-                          onMergeAction={handleMergeAction}
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full">

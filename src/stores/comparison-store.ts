@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 import type {
     DocumentContent,
     ComparisonResult,
-    MergeAction,
     AISummary,
     ComparisonHistory
 } from '@/types/document';
@@ -22,9 +21,6 @@ interface ComparisonState {
     aiSummary: AISummary | null;
     isGeneratingSummary: boolean;
 
-    // Merge
-    mergeActions: MergeAction[];
-
     // UI State
     viewMode: 'side-by-side' | 'inline' | 'unified';
     language: Language;
@@ -40,10 +36,6 @@ interface ComparisonState {
     setIsComparing: (isComparing: boolean) => void;
     setAISummary: (summary: AISummary | null) => void;
     setIsGeneratingSummary: (isGenerating: boolean) => void;
-    addMergeAction: (action: MergeAction) => void;
-    removeMergeAction: (diffId: string) => void;
-    resetMergeActions: () => void;
-    setMergeActions: (actions: MergeAction[]) => void;
     setViewMode: (mode: 'side-by-side' | 'inline' | 'unified') => void;
     setLanguage: (lang: Language) => void;
 
@@ -66,9 +58,8 @@ const initialState = {
     isComparing: false,
     aiSummary: null,
     isGeneratingSummary: false,
-    mergeActions: [],
     viewMode: 'side-by-side' as const,
-    language: 'en' as Language,
+    language: 'vi' as Language,
     history: [],
     isLoadingHistory: false,
     clientId: null
@@ -85,20 +76,6 @@ export const useComparisonStore = create<ComparisonState>()(
             setIsComparing: (isComparing) => set({ isComparing }),
             setAISummary: (summary) => set({ aiSummary: summary }),
             setIsGeneratingSummary: (isGenerating) => set({ isGeneratingSummary: isGenerating }),
-
-            addMergeAction: (action) => set((state) => ({
-                mergeActions: [
-                    ...state.mergeActions.filter(a => a.diffId !== action.diffId),
-                    action
-                ]
-            })),
-
-            removeMergeAction: (diffId) => set((state) => ({
-                mergeActions: state.mergeActions.filter(a => a.diffId !== diffId)
-            })),
-
-            resetMergeActions: () => set({ mergeActions: [] }),
-            setMergeActions: (actions) => set({ mergeActions: actions }),
 
             setViewMode: (mode) => set({ viewMode: mode }),
             setLanguage: (lang) => set({ language: lang }),
@@ -123,7 +100,6 @@ export const useComparisonStore = create<ComparisonState>()(
                 isComparing: false,
                 aiSummary: null,
                 isGeneratingSummary: false,
-                mergeActions: [],
                 // We do NOT reset clientId or history on general reset
             }),
         }),

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
         // Fetch recent comparisons for this client
         const comparisons = await Comparison.find({ clientId })
-            .select('shortId originalName modifiedName stats aiSummary createdAt mergeActions') // Exclude content
+            .select('shortId originalName modifiedName stats aiSummary createdAt') // Exclude content
             .sort({ createdAt: -1 })
             .limit(50);
 
@@ -49,6 +49,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing clientId' }, { status: 400 });
         }
 
+        // Check for duplicate comparison (same client, same files, same content)
+        // This prevents polluting history with Identical comparisons
+        const existingComparison = await Comparison.findOne({
+            clientId: body.clientId,
+            originalName: body.originalDocName,
+            modifiedName: body.modifiedDocName,
+            // We can check content length as a quick proxy, or a hash ideally. 
+            // For now, let's check recent history to avoid spamming.
+            // Or better, check the exact content if not too expensive. MongoDB handles large strings decently.
+            originalContent: body.originalContent,
+            modifiedContent: body.modifiedContent
+        }).select('shortId _id');
+
+        if (existingComparison) {
+            return NextResponse.json({ id: existingComparison.shortId, _id: existingComparison._id }, { status: 200 });
+        }
+
         // Generate a friendly short ID if not provided (server-side generation is safer)
         const shortId = generateShortId();
 
@@ -66,7 +83,7 @@ export async function POST(req: NextRequest) {
                 keyChanges: body.aiSummary.keyChanges,
                 impactLevel: body.aiSummary.impactLevel
             } : null,
-            mergeActions: []
+
         });
 
         // Return the shortId so the client can navigate to /s/[shortId]

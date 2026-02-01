@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { AISummaryPanel } from "@/components/ai/AISummary";
 import { AISummary } from "@/types/document";
 
+import { translations } from "@/lib/i18n";
+import { useComparisonStore } from "@/stores/comparison-store";
+
 interface ChangesSidebarProps {
     changes: DiffChange[];
     selectedIndex: number;
@@ -33,6 +36,10 @@ export function ChangesSidebar({
     width = 320,
     stats
 }: ChangesSidebarProps) {
+
+    // We can use the prop language, but to consistently use t, let's grab it or just use the prop to index translations
+    // Since language is passed as prop, we use it directly:
+    const t = translations[language];
 
     const addedCount = stats?.additions ?? changes.filter(c => c.type === 'added').length;
     const removedCount = stats?.deletions ?? changes.filter(c => c.type === 'removed').length;
@@ -64,7 +71,7 @@ export function ChangesSidebar({
 
                     {/* Left: Title + Total */}
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-foreground/80 uppercase tracking-tight">Changes</span>
+                        <span className="text-xs font-semibold text-foreground/80 uppercase tracking-tight">{t.changes}</span>
                         <Badge variant="secondary" className="h-5 px-1.5 text-[10px] min-w-[20px] justify-center">{changes.length}</Badge>
                     </div>
 

@@ -1,19 +1,16 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { FileText, History, GitCompare, Languages, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useComparisonStore } from '@/stores/comparison-store';
 import { translations } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useComparisonStore } from '@/stores/comparison-store';
+import { FileText, Languages, Moon, Sun } from 'lucide-react';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 
 import { HistoryModal } from '@/components/history/HistoryModal';
 
 export function Header() {
-    const pathname = usePathname();
-    const { language, setLanguage } = useComparisonStore();
+    const { language, setLanguage, reset } = useComparisonStore();
     const [isDark, setIsDark] = useState(false);
     const t = translations[language];
 
@@ -31,6 +28,14 @@ export function Header() {
         setLanguage(language === 'en' ? 'vi' : 'en');
     };
 
+    const handleLogoClick = useCallback(() => {
+        // Full reset
+        reset();
+
+        // Clear URL
+        window.history.pushState({}, '', '/');
+    }, [reset]);
+
     const navItems = [
         { href: '/', label: t.home, icon: FileText },
         // History is now in sidebar
@@ -40,13 +45,13 @@ export function Header() {
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-6">
-                    <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+                    <div onClick={handleLogoClick} className="cursor-pointer flex items-center gap-2 hover:opacity-90 transition-opacity">
                         <img
                             src="/logo.png"
                             alt={t.appName}
                             className="h-8 w-auto object-contain"
                         />
-                    </Link>
+                    </div>
 
                     <div className="hidden md:flex items-center gap-1">
                         <HistoryModal />

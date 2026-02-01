@@ -20,6 +20,8 @@ export const translations = {
         dropHere: 'Drop file here',
         browse: 'Browse',
         or: 'or',
+        swap: 'Swap',
+
 
         // Comparison
         comparing: 'Comparing Documents',
@@ -35,6 +37,9 @@ export const translations = {
         unified: 'Unified',
         original: 'Original',
         modified: 'Modified',
+        visualPreview: 'Visual Preview',
+        rawDiff: 'Raw Diff',
+        syncScroll: 'Sync Scroll',
 
         // AI Summary
         aiSummary: 'AI Summary',
@@ -73,6 +78,9 @@ export const translations = {
         save: 'Save',
         undo: 'Undo',
         redo: 'Redo',
+        back: 'Back',
+        share: 'Share',
+        analyzeWithAI: 'Analyze with AI',
 
         // Status
         loading: 'Loading...',
@@ -84,6 +92,10 @@ export const translations = {
         unsupportedFormat: 'Unsupported file format',
         fileTooLarge: 'File is too large',
         networkError: 'Network error occurred',
+        processing: 'Processing document...',
+        extracting: 'Extracting content',
+        replaceFile: 'Replace File',
+        clickToBrowse: 'or click to browse',
     },
 
     vi: {
@@ -105,6 +117,8 @@ export const translations = {
         dropHere: 'Thả tệp vào đây',
         browse: 'Duyệt',
         or: 'hoặc',
+        swap: 'Hoán đổi',
+
 
         // Comparison
         comparing: 'Đang so sánh Tài liệu',
@@ -120,6 +134,9 @@ export const translations = {
         unified: 'Hợp nhất',
         original: 'Gốc',
         modified: 'Đã sửa',
+        visualPreview: 'Xem trực quan',
+        rawDiff: 'Mã khác biệt',
+        syncScroll: 'Cuộn đồng bộ',
 
         // AI Summary
         aiSummary: 'Tóm tắt AI',
@@ -158,6 +175,9 @@ export const translations = {
         save: 'Lưu',
         undo: 'Hoàn tác',
         redo: 'Làm lại',
+        back: 'Quay lại',
+        share: 'Chia sẻ',
+        analyzeWithAI: 'Phân tích với AI',
 
         // Status
         loading: 'Đang tải...',
@@ -169,6 +189,10 @@ export const translations = {
         unsupportedFormat: 'Định dạng tệp không được hỗ trợ',
         fileTooLarge: 'Tệp quá lớn',
         networkError: 'Đã xảy ra lỗi mạng',
+        processing: 'Đang xử lý tài liệu...',
+        extracting: 'Đang trích xuất nội dung',
+        replaceFile: 'Thay thế tệp',
+        clickToBrowse: 'hoặc nhấp để chọn',
     },
 } as const;
 

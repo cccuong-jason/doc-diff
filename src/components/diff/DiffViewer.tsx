@@ -11,17 +11,13 @@ interface DiffViewerProps {
     viewMode: 'side-by-side' | 'inline' | 'unified';
     onDiffClick?: (diff: DiffResult) => void;
     selectedDiffId?: string;
-    mergeActions?: Record<string, 'accept' | 'reject'>; // Map diffId -> action
-    onMergeAction?: (diffId: string, action: 'accept' | 'reject') => void;
 }
 
 export function DiffViewer({
     diffs,
     viewMode,
     onDiffClick,
-    selectedDiffId,
-    mergeActions = {},
-    onMergeAction
+    selectedDiffId
 }: DiffViewerProps) {
     const filteredDiffs = useMemo(() =>
         diffs.filter(d => d.type !== 'unchanged' || viewMode === 'unified'),
@@ -29,28 +25,24 @@ export function DiffViewer({
     );
 
     if (viewMode === 'side-by-side') {
-        return <SideBySideView diffs={diffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} mergeActions={mergeActions} onMergeAction={onMergeAction} />;
+        return <SideBySideView diffs={diffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} />;
     }
 
     if (viewMode === 'inline') {
-        return <InlineView diffs={filteredDiffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} mergeActions={mergeActions} onMergeAction={onMergeAction} />;
+        return <InlineView diffs={filteredDiffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} />;
     }
 
-    return <UnifiedView diffs={diffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} mergeActions={mergeActions} onMergeAction={onMergeAction} />;
+    return <UnifiedView diffs={diffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} />;
 }
 
 function SideBySideView({
     diffs,
     onDiffClick,
-    selectedDiffId,
-    mergeActions,
-    onMergeAction
+    selectedDiffId
 }: {
     diffs: DiffResult[];
     onDiffClick?: (diff: DiffResult) => void;
     selectedDiffId?: string;
-    mergeActions: Record<string, 'accept' | 'reject'>;
-    onMergeAction?: (diffId: string, action: 'accept' | 'reject') => void;
 }) {
     return (
         <div className="grid grid-cols-2 gap-4 h-full">
@@ -70,8 +62,6 @@ function SideBySideView({
                             index={index}
                             onClick={() => onDiffClick?.(diff)}
                             isSelected={selectedDiffId === diff.id}
-                            mergeAction={mergeActions[diff.id]}
-                            onMergeAction={onMergeAction}
                         />
                     ))}
                 </ScrollArea>
@@ -93,8 +83,6 @@ function SideBySideView({
                             index={index}
                             onClick={() => onDiffClick?.(diff)}
                             isSelected={selectedDiffId === diff.id}
-                            mergeAction={mergeActions[diff.id]}
-                            onMergeAction={onMergeAction}
                         />
                     ))}
                 </ScrollArea>
@@ -106,15 +94,11 @@ function SideBySideView({
 function InlineView({
     diffs,
     onDiffClick,
-    selectedDiffId,
-    mergeActions,
-    onMergeAction
+    selectedDiffId
 }: {
     diffs: DiffResult[];
     onDiffClick?: (diff: DiffResult) => void;
     selectedDiffId?: string;
-    mergeActions: Record<string, 'accept' | 'reject'>;
-    onMergeAction?: (diffId: string, action: 'accept' | 'reject') => void;
 }) {
     return (
         <ScrollArea className="h-[600px] rounded-lg border bg-muted/20 p-4">
@@ -160,15 +144,11 @@ function InlineView({
 function UnifiedView({
     diffs,
     onDiffClick,
-    selectedDiffId,
-    mergeActions,
-    onMergeAction
+    selectedDiffId
 }: {
     diffs: DiffResult[];
     onDiffClick?: (diff: DiffResult) => void;
     selectedDiffId?: string;
-    mergeActions: Record<string, 'accept' | 'reject'>;
-    onMergeAction?: (diffId: string, action: 'accept' | 'reject') => void;
 }) {
     return (
         <ScrollArea className="h-[600px] rounded-lg border bg-muted/20">
@@ -182,34 +162,11 @@ function UnifiedView({
                             diff.type === 'added' && 'border-green-500 bg-green-50 dark:bg-green-900/20',
                             diff.type === 'removed' && 'border-red-500 bg-red-50 dark:bg-red-900/20',
                             diff.type === 'modified' && 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20',
-                            selectedDiffId === diff.id && 'ring-2 ring-inset ring-primary',
-                            // Merge visual states
-                            mergeActions[diff.id] === 'reject' && 'opacity-50 grayscale decoration-slate-500',
-                            mergeActions[diff.id] === 'accept' && 'ring-1 ring-green-500/50'
+                            selectedDiffId === diff.id && 'ring-2 ring-inset ring-primary'
                         )}
                         onClick={() => onDiffClick?.(diff)}
                     >
-                        {/* Merge Controls (Absolute positioned or inline) */}
-                        {diff.type !== 'unchanged' && onMergeAction && (
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 p-0.5 rounded shadow-sm z-10">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onMergeAction(diff.id, 'accept'); }}
-                                    className={cn("p-1 rounded hover:bg-green-100 dark:hover:bg-green-900 text-green-600", mergeActions[diff.id] === 'accept' && "bg-green-100 dark:bg-green-900 font-bold")}
-                                    title="Accept Change"
-                                >
-                                    <span className="sr-only">Accept</span>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onMergeAction(diff.id, 'reject'); }}
-                                    className={cn("p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600", mergeActions[diff.id] === 'reject' && "bg-red-100 dark:bg-red-900 font-bold")}
-                                    title="Reject Change"
-                                >
-                                    <span className="sr-only">Reject</span>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                </button>
-                            </div>
-                        )}
+
 
                         <span className="inline-block w-8 text-muted-foreground text-right mr-4 shrink-0 select-none">
                             {index + 1}
@@ -219,7 +176,7 @@ function UnifiedView({
                             {diff.type === 'removed' && <span className="text-red-600">−</span>}
                             {diff.type === 'modified' && <span className="text-yellow-600">~</span>}
                         </span>
-                        <span className={cn("flex-1 whitespace-pre-wrap break-words", mergeActions[diff.id] === 'reject' && diff.type === 'added' && "line-through decoration-red-400")}>
+                        <span className={cn("flex-1 whitespace-pre-wrap break-words")}>
                             {diff.type === 'modified' ? (
                                 <WordDiffDisplay wordDiffs={diff.wordDiffs} side="modified" />
                             ) : (
@@ -239,8 +196,6 @@ function DiffLine({
     index,
     onClick,
     isSelected,
-    mergeAction,
-    onMergeAction,
     id
 }: {
     diff: DiffResult;
@@ -248,8 +203,6 @@ function DiffLine({
     index: number;
     onClick?: () => void;
     isSelected?: boolean;
-    mergeAction?: 'accept' | 'reject';
-    onMergeAction?: (diffId: string, action: 'accept' | 'reject') => void;
     id?: string;
 }) {
     const text = side === 'original' ? diff.original?.text : diff.modified?.text;
@@ -267,32 +220,12 @@ function DiffLine({
                 diff.type === 'removed' && side === 'original' && 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
                 diff.type === 'modified' && 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200',
                 showEmpty && 'bg-muted/50 h-6',
-                isSelected && 'ring-2 ring-primary',
-                // Merge states
-                mergeAction === 'reject' && 'opacity-60 grayscale',
-                mergeAction === 'accept' && 'ring-1 ring-green-600/30'
+                showEmpty && 'bg-muted/50 h-6',
+                isSelected && 'ring-2 ring-primary'
             )}
             onClick={onClick}
         >
-            {/* Merge Controls */}
-            {!showEmpty && diff.type !== 'unchanged' && onMergeAction && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-black/90 p-0.5 rounded shadow-sm z-10 border">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onMergeAction(diff.id, 'accept'); }}
-                        className={cn("p-1 rounded hover:bg-green-100 dark:hover:bg-green-900 text-green-600", mergeAction === 'accept' && "bg-green-100 dark:bg-green-900 font-bold")}
-                        title="Accept Change"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onMergeAction(diff.id, 'reject'); }}
-                        className={cn("p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600", mergeAction === 'reject' && "bg-red-100 dark:bg-red-900 font-bold")}
-                        title="Reject Change"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-            )}
+
             {!showEmpty && (
                 <>
                     <span className="inline-block w-6 text-muted-foreground text-right mr-2">
