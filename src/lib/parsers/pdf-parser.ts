@@ -101,6 +101,7 @@ export async function parsePdf(file: File): Promise<DocumentContent> {
             metadata,
             rawContent,
             htmlContent,
+            fileUrl: typeof window !== 'undefined' ? URL.createObjectURL(file) : undefined,
         };
     } catch (error) {
         console.error('Error parsing PDF:', error);
