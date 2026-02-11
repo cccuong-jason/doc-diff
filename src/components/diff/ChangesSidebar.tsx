@@ -78,17 +78,17 @@ export function ChangesSidebar({
                     {/* Center: Stats Pills */}
                     <div className="flex items-center gap-1.5 mx-2">
                         {addedCount > 0 && (
-                            <div className="flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-500/10 px-1.5 py-0.5 rounded-full ring-1 ring-green-500/20" title="Added">
+                            <div className="flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-500/10 px-1.5 py-0.5 rounded-full ring-1 ring-green-500/20" title={t.additions}>
                                 <span>+</span>{addedCount}
                             </div>
                         )}
                         {modifiedCount > 0 && (
-                            <div className="flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-full ring-1 ring-amber-500/20" title="Values Changed">
+                            <div className="flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-full ring-1 ring-amber-500/20" title={t.modifications}>
                                 <span>~</span>{modifiedCount}
                             </div>
                         )}
                         {removedCount > 0 && (
-                            <div className="flex items-center gap-1 text-[10px] font-medium text-red-600 bg-red-500/10 px-1.5 py-0.5 rounded-full ring-1 ring-red-500/20" title="Removed">
+                            <div className="flex items-center gap-1 text-[10px] font-medium text-red-600 bg-red-500/10 px-1.5 py-0.5 rounded-full ring-1 ring-red-500/20" title={t.deletions}>
                                 <span>-</span>{removedCount}
                             </div>
                         )}
@@ -124,7 +124,7 @@ export function ChangesSidebar({
                     {changes.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-center p-8">
                             <FileText className="w-10 h-10 mb-3 opacity-20" />
-                            <p className="text-sm">No text changes detected</p>
+                            <p className="text-sm">{t.noChanges}</p>
                         </div>
                     ) : (
                         <>
@@ -141,16 +141,16 @@ export function ChangesSidebar({
                                 >
                                     <div className="flex items-center justify-between gap-2 mb-1.5">
                                         {change.type === 'added' ? (
-                                            <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200 hover:bg-green-500/20 px-1.5 py-0 h-5 text-[9px] font-bold">
-                                                ADDED
+                                            <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200 hover:bg-green-500/20 px-1.5 py-0 h-5 text-[9px] font-bold uppercase">
+                                                {t.additions}
                                             </Badge>
                                         ) : change.type === 'modified' ? (
-                                            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-200 hover:bg-amber-500/20 px-1.5 py-0 h-5 text-[9px] font-bold">
-                                                MODIFIED
+                                            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-200 hover:bg-amber-500/20 px-1.5 py-0 h-5 text-[9px] font-bold uppercase">
+                                                {t.modifications}
                                             </Badge>
                                         ) : (
-                                            <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-200 hover:bg-red-500/20 px-1.5 py-0 h-5 text-[9px] font-bold">
-                                                REMOVED
+                                            <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-200 hover:bg-red-500/20 px-1.5 py-0 h-5 text-[9px] font-bold uppercase">
+                                                {t.deletions}
                                             </Badge>
                                         )}
                                         <span className="text-[9px] font-mono text-muted-foreground opacity-50">#{idx + 1}</span>

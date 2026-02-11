@@ -72,6 +72,25 @@ export async function parseXlsx(file: File): Promise<DocumentContent> {
         sheetCount: workbook.SheetNames.length,
     };
 
+    // Generate HTML content for visual diff
+    const htmlContent = tables.map(table => {
+        const rowsHtml = table.rows.map(row => {
+            const cellsHtml = row.map(cell => `<td style="border: 1px solid #ccc; padding: 4px;">${cell.text}</td>`).join('');
+            return `<tr>${cellsHtml}</tr>`;
+        }).join('');
+
+        return `
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-weight: bold; margin-bottom: 8px;">${table.position.sheet}</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #ccc;">
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }).join('');
+
     return {
         id: crypto.randomUUID(),
         name: file.name,
@@ -81,5 +100,6 @@ export async function parseXlsx(file: File): Promise<DocumentContent> {
         tables,
         metadata,
         rawContent,
+        htmlContent,
     };
 }

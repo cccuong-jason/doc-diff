@@ -72,6 +72,12 @@ export function DocumentPreview({
                                 dangerouslySetInnerHTML={{ __html: htmlToRender }}
                                 className="document-html-content prose dark:prose-invert max-w-none"
                             />
+                        ) : document.format === 'pdf' && document.fileUrl ? (
+                            <iframe
+                                src={document.fileUrl}
+                                className="w-full h-full min-h-[800px] border-none"
+                                title={document.name}
+                            />
                         ) : (
                             <div className="space-y-3 whitespace-pre-wrap">
                                 {document.paragraphs.map((para, index) => (

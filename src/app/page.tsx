@@ -44,6 +44,7 @@ export default function HomePage() {
     // updateHistoryItem removed
     history,
     reset,
+    resetComparison,
     clientId,
     ensureClientId
   } = useComparisonStore();
@@ -497,8 +498,7 @@ export default function HomePage() {
               {/* Left: Back */}
               {/* Left: Back */}
               <Button variant="ghost" size="sm" onClick={() => {
-                setComparisonResult(null);
-                setAISummary(null);
+                resetComparison();
                 window.history.pushState({}, '', '/');
               }} className="text-muted-foreground hover:text-foreground shrink-0">
                 <ArrowRight className="w-4 h-4 mr-2 rotate-180" />

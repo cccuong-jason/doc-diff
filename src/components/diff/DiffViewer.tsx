@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { DiffResult, WordDiff } from '@/types/document';
 
+import { useComparisonStore } from '@/stores/comparison-store';
+import { translations } from '@/lib/i18n';
+
 interface DiffViewerProps {
     diffs: DiffResult[];
     viewMode: 'side-by-side' | 'inline' | 'unified';
@@ -19,13 +22,16 @@ export function DiffViewer({
     onDiffClick,
     selectedDiffId
 }: DiffViewerProps) {
+    const { language } = useComparisonStore();
+    const t = translations[language];
+
     const filteredDiffs = useMemo(() =>
         diffs.filter(d => d.type !== 'unchanged' || viewMode === 'unified'),
         [diffs, viewMode]
     );
 
     if (viewMode === 'side-by-side') {
-        return <SideBySideView diffs={diffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} />;
+        return <SideBySideView diffs={diffs} onDiffClick={onDiffClick} selectedDiffId={selectedDiffId} t={t} />;
     }
 
     if (viewMode === 'inline') {
@@ -38,18 +44,20 @@ export function DiffViewer({
 function SideBySideView({
     diffs,
     onDiffClick,
-    selectedDiffId
+    selectedDiffId,
+    t
 }: {
     diffs: DiffResult[];
     onDiffClick?: (diff: DiffResult) => void;
     selectedDiffId?: string;
+    t: any;
 }) {
     return (
         <div className="grid grid-cols-2 gap-4 h-full">
             <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-3 px-2">
                     <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Original
+                        {t.original}
                     </Badge>
                 </div>
                 <ScrollArea className="h-[500px] rounded-lg border bg-muted/20 p-4">
@@ -70,7 +78,7 @@ function SideBySideView({
             <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-3 px-2">
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Modified
+                        {t.modified}
                     </Badge>
                 </div>
                 <ScrollArea className="h-[500px] rounded-lg border bg-muted/20 p-4">
