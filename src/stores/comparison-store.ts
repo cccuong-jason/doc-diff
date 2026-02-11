@@ -49,6 +49,7 @@ interface ComparisonState {
     ensureClientId: () => void; // Generates one if missing
 
     reset: () => void;
+    resetComparison: () => void;
 }
 
 const initialState = {
@@ -101,6 +102,13 @@ export const useComparisonStore = create<ComparisonState>()(
                 aiSummary: null,
                 isGeneratingSummary: false,
                 // We do NOT reset clientId or history on general reset
+            }),
+
+            resetComparison: () => set({
+                comparisonResult: null,
+                isComparing: false,
+                aiSummary: null,
+                isGeneratingSummary: false,
             }),
         }),
         {

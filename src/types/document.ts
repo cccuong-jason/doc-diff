@@ -59,6 +59,7 @@ export interface DocumentContent {
     metadata: DocumentMetadata;
     rawContent?: string; // For text-based diffing
     htmlContent?: string; // For visual document preview
+    fileUrl?: string; // For original file preview (PDF etc)
 }
 
 // Diff types
