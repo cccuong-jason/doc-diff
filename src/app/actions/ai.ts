@@ -3,7 +3,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { DiffResult, AISummary } from '@/types/document';
 
-const API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.APIKEY;
+const API_KEYS = (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.APIKEY || '').split(',').map(k => k.trim()).filter(Boolean);
+const AI_MODEL = process.env.AI_MODEL || 'gemini-1.5-flash';
 
 export async function generateChangeSummary(
     changes: DiffResult[],
@@ -12,7 +13,7 @@ export async function generateChangeSummary(
     language: 'en' | 'vi' = 'vi'
 ): Promise<AISummary> {
 
-    if (!API_KEY) {
+    if (API_KEYS.length === 0) {
         return {
             id: crypto.randomUUID(),
             comparisonId: '',
@@ -26,86 +27,108 @@ export async function generateChangeSummary(
         };
     }
 
-    try {
-        const genAI = new GoogleGenerativeAI(API_KEY);
+    let lastError: any = null;
 
-        // Build context from changes
-        const changesContext = buildChangesContext(changes);
-
-        // Force Vietnamese prompt if language is 'vi' or undefined (default)
-        const prompt = language === 'en'
-            ? buildEnglishPrompt(changesContext, originalDocName, modifiedDocName)
-            : buildVietnamesePrompt(changesContext, originalDocName, modifiedDocName);
-
-        // Try primary model: gemini-1.5-flash
-        // (Note: User mentioned "2.5 flash", likely referring to 2.0 Flash Experimental or future version.
-        // We stick to 1.5-flash as stable, but fallback to gemini-pro if needed).
-        let text = '';
+    for (const apiKey of API_KEYS) {
         try {
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const genAI = new GoogleGenerativeAI(apiKey);
+
+            // Build context from changes
+            const changesContext = buildChangesContext(changes);
+
+            // Force Vietnamese prompt if language is 'vi' or undefined (default)
+            const prompt = language === 'en'
+                ? buildEnglishPrompt(changesContext, originalDocName, modifiedDocName)
+                : buildVietnamesePrompt(changesContext, originalDocName, modifiedDocName);
+
+            const model = genAI.getGenerativeModel({ model: AI_MODEL });
             const result = await model.generateContent(prompt);
             const response = await result.response;
-            text = response.text();
-        } catch (primaryErr: any) {
-            console.warn(`[Gemini] gemini-2.5-flash failed, falling back to gemini-1.5-flash...`, primaryErr);
-            try {
-                const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-                const fallbackResult = await fallbackModel.generateContent(prompt);
-                const fallbackResponse = await fallbackResult.response;
-                text = fallbackResponse.text();
-            } catch (fallbackErr) {
-                throw primaryErr;
+            const text = response.text();
+
+            // Parse the AI response
+            const parsed = parseAIResponse(text, language);
+
+            return {
+                id: crypto.randomUUID(),
+                comparisonId: '',
+                summary: parsed.summary,
+                summaryVi: language === 'vi' ? parsed.summary : undefined,
+                keyChanges: parsed.keyChanges,
+                impactLevel: parsed.impactLevel,
+                generatedAt: new Date(),
+            };
+        } catch (error: any) {
+            console.error(`Gemini API Error with key ${apiKey.substring(0, 5)}...:`, error);
+            lastError = error;
+
+            // If it's a quota error (429) or permission error, try next key.
+            // Otherwise, typically we might want to fail fast, but for robustness let's try next key for most errors 
+            // EXCEPT maybe invalid request arguments? But simpler to just rotate.
+            // Specifically check for 429 to be sure we are rotating for quota.
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('429') || msg.includes('quota') || msg.includes('resource exhausted')) {
+                console.warn("Quota exceeded, switching to next key...");
+                continue;
             }
+
+            // For other errors, we might stop or continue. Let's continue to be safe if it's a key issue.
+            if (msg.includes('403') || msg.includes('permission') || msg.includes('api key')) {
+                console.warn("Invalid key, switching to next key...");
+                continue;
+            }
+
+            // If it's not a key/quota error, maybe it's a model error or prompt error. 
+            // If model error (404), maybe the key doesn't have access to the model? Try next key.
+            if (msg.includes('404') || msg.includes('not found')) {
+                console.warn("Model not found with this key, switching to next key...");
+                continue;
+            }
+
+            // If we are here, it might be a parsing error or something else. 
+            // Let's break and throw/return error if we want to stop on other errors.
+            // But for now, let's just try all keys.
         }
-
-        // Parse the AI response
-        const parsed = parseAIResponse(text, language);
-
-        return {
-            id: crypto.randomUUID(),
-            comparisonId: '',
-            summary: parsed.summary,
-            summaryVi: language === 'vi' ? parsed.summary : undefined,
-            keyChanges: parsed.keyChanges,
-            impactLevel: parsed.impactLevel,
-            generatedAt: new Date(),
-        };
-    } catch (error: any) {
-        console.error("Gemini API Error:", error);
-
-        let userMessage = language === 'vi'
-            ? 'Hệ thống AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau.'
-            : 'AI System is busy or encountered an error. Please try again later.';
-
-        const msg = (error.message || '').toLowerCase();
-
-        if (msg.includes('404') || msg.includes('not found')) {
-            userMessage = language === 'vi'
-                ? 'Không tìm thấy mô hình AI (404). Vui lòng kiểm tra cấu hình.'
-                : 'AI Model not found (404). Please check configuration.';
-        } else if (msg.includes('403') || msg.includes('permission') || msg.includes('api key')) {
-            userMessage = language === 'vi'
-                ? 'Khóa API không hợp lệ hoặc bị từ chối quyền truy cập.'
-                : 'Invalid API Key or permission denied.';
-        } else if (msg.includes('429') || msg.includes('quota')) {
-            userMessage = language === 'vi'
-                ? 'Đã vượt quá giới hạn hạn mức API. Vui lòng thử lại sau.'
-                : 'API Quota exceeded. Please try again later.';
-        } else if (msg.includes('safety') || msg.includes('blocked')) {
-            userMessage = language === 'vi'
-                ? 'Nội dung bị chặn bởi bộ lọc an toàn.'
-                : 'Content blocked by safety filters.';
-        }
-
-        return {
-            id: crypto.randomUUID(),
-            comparisonId: '',
-            summary: userMessage,
-            keyChanges: [],
-            impactLevel: 'minor',
-            generatedAt: new Date(),
-        };
     }
+
+    // If we exhausted all keys, return error based on lastError
+    const error = lastError;
+
+    console.error("Gemini API Error:", error);
+
+    let userMessage = language === 'vi'
+        ? 'Hệ thống AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau.'
+        : 'AI System is busy or encountered an error. Please try again later.';
+
+    const msg = (error.message || '').toLowerCase();
+
+    if (msg.includes('404') || msg.includes('not found')) {
+        userMessage = language === 'vi'
+            ? 'Không tìm thấy mô hình AI (404). Vui lòng kiểm tra cấu hình.'
+            : 'AI Model not found (404). Please check configuration.';
+    } else if (msg.includes('403') || msg.includes('permission') || msg.includes('api key')) {
+        userMessage = language === 'vi'
+            ? 'Khóa API không hợp lệ hoặc bị từ chối quyền truy cập.'
+            : 'Invalid API Key or permission denied.';
+    } else if (msg.includes('429') || msg.includes('quota')) {
+        userMessage = language === 'vi'
+            ? 'Đã vượt quá giới hạn hạn mức API. Vui lòng thử lại sau.'
+            : 'API Quota exceeded. Please try again later.';
+    } else if (msg.includes('safety') || msg.includes('blocked')) {
+        userMessage = language === 'vi'
+            ? 'Nội dung bị chặn bởi bộ lọc an toàn.'
+            : 'Content blocked by safety filters.';
+    }
+
+    return {
+        id: crypto.randomUUID(),
+        comparisonId: '',
+        summary: userMessage,
+        keyChanges: [],
+        impactLevel: 'minor',
+        generatedAt: new Date(),
+    };
+}
 }
 
 function buildChangesContext(changes: DiffResult[]): string {
