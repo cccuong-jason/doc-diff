@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { ArrowRight, GitCompare, ArrowLeftRight, ChevronUp, ChevronDown, Menu, RefreshCw, X, FolderInput, Zap, Loader2 } from 'lucide-react';
+import { ArrowRight, GitCompare, ArrowLeftRight, ChevronUp, ChevronDown, Menu, RefreshCw, X, FolderInput, Loader2, Zap, Share, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -643,16 +643,18 @@ export default function HomePage() {
                   }
                 />
 
-                {/* Export Button */}
                 <Button
-                  variant="default"
+                  variant="ghost"
                   size="sm"
-                  onClick={handleExport}
-                  className="bg-blue-600 hover:bg-blue-700 text-white gap-2 mr-2 hidden md:flex"
+                  className="gap-2 hidden md:flex text-muted-foreground hover:text-foreground"
+                  title={t.exportReport}
+                  onClick={() => window.open(`/report/${comparisonResult.id}?lang=${language}`, '_blank')}
                 >
-                  <FolderInput className="w-4 h-4" />
-                  Export
+                  <Printer className="w-4 h-4" />
+                  {t.exportReport || 'Export'}
                 </Button>
+
+
                 {/* Navigation Controls in Toolbar */}
                 {totalDetectedChanges > 0 && (
                   <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 border mr-2">

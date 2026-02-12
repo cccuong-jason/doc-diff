@@ -67,6 +67,8 @@ export function ShareDialog({ id, language, trigger }: { id: string, language: s
                         <span className="sr-only">Copy</span>
                     </Button>
                 </div>
+
+
             </DialogContent>
         </Dialog>
     );

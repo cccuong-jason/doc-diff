@@ -44,9 +44,16 @@ export async function generateChangeSummary(
             const result = await model.generateContent(prompt);
             const response = await result.response;
             text = response.text();
-        } catch (error: any) {
-            console.warn(`[Gemini] gemini-2.0-flash failed, trying gemini-pro...`);
-            throw error;
+        } catch (primaryErr: any) {
+            console.warn(`[Gemini] gemini-2.5-flash failed, falling back to gemini-1.5-flash...`, primaryErr);
+            try {
+                const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const fallbackResult = await fallbackModel.generateContent(prompt);
+                const fallbackResponse = await fallbackResult.response;
+                text = fallbackResponse.text();
+            } catch (fallbackErr) {
+                throw primaryErr;
+            }
         }
 
         // Parse the AI response

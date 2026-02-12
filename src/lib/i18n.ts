@@ -66,6 +66,7 @@ export const translations = {
         downloadOriginal: 'Download Original',
         downloadModified: 'Download Modified',
         downloadMerged: 'Download Merged',
+        exportReport: 'Export Report',
 
         // Actions
         compareAction: 'Compare',
@@ -151,6 +152,7 @@ export const translations = {
         downloadOriginal: 'Tải Bản gốc',
         downloadModified: 'Tải Bản sửa',
         downloadMerged: 'Tải Bản gộp',
+        exportReport: 'Xuất Báo cáo',
 
         // Actions
         compareAction: 'So sánh',
