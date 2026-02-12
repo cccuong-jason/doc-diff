@@ -68,16 +68,7 @@ export function ShareDialog({ id, language, trigger }: { id: string, language: s
                     </Button>
                 </div>
 
-                <div className="mt-4 pt-4 border-t flex justify-center">
-                    <Button
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={() => window.open(`/report/${id}`, '_blank')}
-                    >
-                        <Share2 className="w-4 h-4 rotate-90" />
-                        {language === 'vi' ? 'Tải xuống Báo cáo (PDF)' : 'Download Report (PDF)'}
-                    </Button>
-                </div>
+
             </DialogContent>
         </Dialog >
     );
