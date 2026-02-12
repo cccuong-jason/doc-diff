@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { ArrowRight, GitCompare, ArrowLeftRight, ChevronUp, ChevronDown, Menu, RefreshCw, X, FolderInput, Loader2, Zap, Share } from 'lucide-react';
+import { ArrowRight, GitCompare, ArrowLeftRight, ChevronUp, ChevronDown, Menu, RefreshCw, X, FolderInput, Loader2, Zap, Share, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -552,6 +552,17 @@ export default function HomePage() {
                     </Button>
                   }
                 />
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 hidden md:flex text-muted-foreground hover:text-foreground"
+                  title={t.exportReport}
+                  onClick={() => window.open(`/report/${comparisonResult.id}?lang=${language}`, '_blank')}
+                >
+                  <Printer className="w-4 h-4" />
+                  {t.exportReport || 'Export'}
+                </Button>
 
 
                 {/* Navigation Controls in Toolbar */}
