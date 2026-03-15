@@ -129,7 +129,7 @@ export async function generateChangeSummary(
         generatedAt: new Date(),
     };
 }
-}
+
 
 function buildChangesContext(changes: DiffResult[]): string {
     const significantChanges = changes.filter(c => c.type !== 'unchanged');
